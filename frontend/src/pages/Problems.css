@@ -1,0 +1,49 @@
+.problems-page { padding-bottom: 60px; }
+.problems-header { margin: 40px 0 28px; }
+.problems-title { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
+.problems-subtitle { color: var(--text-muted); margin-top: 6px; font-size: 14px; }
+
+.problems-filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.difficulty-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.diff-btn {
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.diff-btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.diff-btn.active { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-hover); }
+.diff-btn.diff-easy.active { background: rgba(34,211,165,0.1); color: var(--diff-easy); border-color: rgba(34,211,165,0.3); }
+.diff-btn.diff-medium.active { background: rgba(249,115,22,0.1); color: var(--diff-medium); border-color: rgba(249,115,22,0.3); }
+.diff-btn.diff-hard.active { background: rgba(239,68,68,0.1); color: var(--diff-hard); border-color: rgba(239,68,68,0.3); }
+
+.search-form { display: flex; gap: 8px; flex: 1; max-width: 400px; }
+.search-input { flex: 1; }
+
+.problem-link {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+  transition: var(--transition);
+}
+.problem-link:hover { color: var(--accent-blue); }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+.page-info { font-size: 14px; color: var(--text-muted); }
