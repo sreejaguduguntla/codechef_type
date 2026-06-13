@@ -59,11 +59,11 @@ int main() {
 
 const VerdictBadge = ({ verdict }) => {
   const map = {
-    'Accepted': { emoji: '✅', class: 'verdict-accepted' },
-    'Wrong Answer': { emoji: '❌', class: 'verdict-wrong' },
-    'Time Limit Exceeded': { emoji: '⏱', class: 'verdict-tle' },
+    'Accepted': { emoji: '🟢', class: 'verdict-accepted' },
+    'Wrong Answer': { emoji: '🔴', class: 'verdict-wrong' },
+    'Time Limit Exceeded': { emoji: '🟠', class: 'verdict-tle' },
     'Compilation Error': { emoji: '🛑', class: 'verdict-ce' },
-    'Runtime Error': { emoji: '💥', class: 'verdict-re' },
+    'Runtime Error': { emoji: '🔵', class: 'verdict-re' },
     'Pending': { emoji: '⏳', class: 'verdict-pending' },
     'Memory Limit Exceeded': { emoji: '💾', class: 'verdict-tle' },
   };
@@ -89,6 +89,8 @@ export default function ProblemDetail() {
   const [activeTab, setActiveTab] = useState('problem');
   const [submissions, setSubmissions] = useState([]);
   const [subsLoading, setSubsLoading] = useState(false);
+  const [customInputEnabled, setCustomInputEnabled] = useState(false);
+  const [customInputText, setCustomInputText] = useState('');
 
   useEffect(() => {
     api.get(`/problems/${slug}`)
@@ -101,7 +103,24 @@ export default function ProblemDetail() {
     setCode(DEFAULT_CODE[lang]);
   };
 
-  const handleSubmit = async () => {
+  const handleRunCode = async () => {
+    if (!user) { navigate('/login'); return; }
+    setSubmitting(true);
+    setResult(null);
+    try {
+      const { data } = await api.post('/submissions/run', {
+        language,
+        code,
+        customInput: customInputEnabled ? customInputText : '',
+      });
+      setResult(data);
+    } catch (err) {
+      setResult({ success: false, status: 'Internal Error', stderr: err.response?.data?.message || 'Server error' });
+    }
+    setSubmitting(false);
+  };
+
+  const handleSubmitSolution = async () => {
     if (!user) { navigate('/login'); return; }
     setSubmitting(true);
     setResult(null);
@@ -113,7 +132,7 @@ export default function ProblemDetail() {
       });
       setResult(data);
     } catch (err) {
-      setResult({ verdict: 'Internal Error', errorOutput: err.response?.data?.message || 'Server error' });
+      setResult({ status: 'Internal Error', stderr: err.response?.data?.message || 'Server error' });
     }
     setSubmitting(false);
   };
@@ -305,39 +324,160 @@ export default function ProblemDetail() {
             />
           </div>
 
-          {/* Submit Area */}
           <div className="submit-area">
-            <button
-              className="btn btn-success btn-lg submit-btn"
-              onClick={handleSubmit}
-              disabled={submitting}
-              id="submit-code-btn"
-            >
-              {submitting ? (
-                <><div className="spinner" /> Judging...</>
-              ) : (
-                '▶ Submit Code'
+            {/* Custom Input Toggle & Textarea */}
+            <div className="custom-input-section">
+              <label className="custom-input-toggle">
+                <input
+                  type="checkbox"
+                  checked={customInputEnabled}
+                  onChange={(e) => setCustomInputEnabled(e.target.checked)}
+                />
+                <span>Use Custom Input (stdin)</span>
+              </label>
+              {customInputEnabled && (
+                <textarea
+                  className="custom-input-textarea font-mono"
+                  placeholder="Provide standard input (stdin) for your program..."
+                  value={customInputText}
+                  onChange={(e) => setCustomInputText(e.target.value)}
+                  rows={3}
+                />
               )}
-            </button>
+            </div>
+
+            <div className="submit-buttons-row">
+              <button
+                className="btn btn-secondary btn-lg run-btn"
+                onClick={handleRunCode}
+                disabled={submitting}
+                id="run-code-btn"
+              >
+                {submitting ? <><div className="spinner" /> Running...</> : '▶ Run Code'}
+              </button>
+
+              <button
+                className="btn btn-success btn-lg submit-btn"
+                onClick={handleSubmitSolution}
+                disabled={submitting}
+                id="submit-code-btn"
+              >
+                {submitting ? <><div className="spinner" /> Submitting...</> : '▶ Submit Code'}
+              </button>
+            </div>
 
             {result && (
-              <div className={`result-panel animate-scaleIn ${result.verdict === 'Accepted' ? 'result-accepted' : 'result-failed'}`}>
-                <div className="result-header">
-                  <VerdictBadge verdict={result.verdict} />
-                  {result.testCasesPassed !== undefined && (
-                    <span className="result-cases">
-                      {result.testCasesPassed}/{result.totalTestCases} test cases
+              <div className={`result-panel-modern animate-scaleIn result-${(result.status || result.verdict)?.toLowerCase().replace(/ /g, '-') || 'pending'}`}>
+                {/* Result Title */}
+                <div className="result-title-row">
+                  {(result.status === 'Accepted' || result.verdict === 'Accepted') ? (
+                    <span className="result-title-text success">✓ Accepted</span>
+                  ) : (
+                    <span className="result-title-text failure">✗ {result.status || result.verdict}</span>
+                  )}
+                  <VerdictBadge verdict={result.status || result.verdict} />
+                </div>
+
+                {/* Info Grid */}
+                <div className="result-info-grid">
+                  <div className="result-info-item">
+                    <span className="label">Language:</span>
+                    <span className="value font-mono">
+                      {LANGUAGES.find(l => l.id === language)?.label || language}
                     </span>
+                  </div>
+                  <div className="result-info-item">
+                    <span className="label">Status:</span>
+                    <span className="value"><VerdictBadge verdict={result.status || result.verdict} /></span>
+                  </div>
+                  {(result.passed !== undefined || result.testCasesPassed !== undefined) && (
+                    <div className="result-info-item">
+                      <span className="label">Passed:</span>
+                      <span className="value">
+                        {result.passed ?? result.testCasesPassed} / {result.total ?? result.totalTestCases}
+                      </span>
+                    </div>
+                  )}
+                  {(result.execution_time || result.executionTime || result.runtime !== null) && (
+                    <div className="result-info-item">
+                      <span className="label">Execution Time:</span>
+                      <span className="value font-mono">
+                        {result.execution_time || result.executionTime || (result.runtime !== null ? `${result.runtime} ms` : '—')}
+                      </span>
+                    </div>
+                  )}
+                  {result.memory && (
+                    <div className="result-info-item">
+                      <span className="label">Memory:</span>
+                      <span className="value font-mono">
+                        {typeof result.memory === 'string'
+                          ? result.memory
+                          : (result.memory ? `${(result.memory / 1024).toFixed(1)} MB` : '—')}
+                      </span>
+                    </div>
                   )}
                 </div>
-                {result.runtime !== null && result.runtime !== undefined && (
-                  <div className="result-stats">
-                    <span>⏱ {result.runtime}ms</span>
-                    {result.memory && <span>💾 {(result.memory / 1024).toFixed(1)}MB</span>}
+
+                {/* Wrong Answer side-by-side / detail comparison */}
+                {(result.status === 'Wrong Answer' || result.verdict === 'Wrong Answer') && result.failedTest && (
+                  <div className="result-wrong-answer-diff">
+                    <div className="section-title">Test Case {result.failedTest} Failed</div>
+                    <div className="divider-dots">──────────</div>
+                    <div className="wrong-answer-diff-grid">
+                      <div className="diff-box">
+                        <div className="diff-label">Expected:</div>
+                        <pre className="diff-content">{result.expected}</pre>
+                      </div>
+                      <div className="diff-box">
+                        <div className="diff-label">Received:</div>
+                        <pre className="diff-content">{result.received}</pre>
+                      </div>
+                    </div>
                   </div>
                 )}
-                {result.errorOutput && (
-                  <pre className="error-output">{result.errorOutput}</pre>
+
+                {/* Compilation Error Block */}
+                {(result.status === 'Compilation Error' || result.verdict === 'Compilation Error') && (
+                  <div className="result-console-section">
+                    <div className="section-title">compile_output:</div>
+                    <div className="divider-dashes">------------------------------</div>
+                    <pre className="console-pre error-output-text">
+                      {result.compile_output || result.errorOutput || 'Compilation Error.'}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Runtime Error / Stderr Block */}
+                {(result.status === 'Runtime Error' || result.verdict === 'Runtime Error') && (
+                  <div className="result-console-section">
+                    <div className="section-title">stderr:</div>
+                    <div className="divider-dashes">------------------------------</div>
+                    <pre className="console-pre error-output-text">
+                      {result.stderr || result.errorOutput || 'Runtime Error.'}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Time Limit Exceeded Block */}
+                {(result.status === 'Time Limit Exceeded' || result.verdict === 'Time Limit Exceeded') && (
+                  <div className="result-console-section">
+                    <div className="section-title">stderr:</div>
+                    <div className="divider-dashes">------------------------------</div>
+                    <pre className="console-pre error-output-text">
+                      Time Limit Exceeded: Process terminated after exceeding maximum CPU time.
+                    </pre>
+                  </div>
+                )}
+
+                {/* Accepted / Clean Stdin Run Output Block */}
+                {(result.status === 'Accepted' || result.verdict === 'Accepted') && (
+                  <div className="result-console-section">
+                    <div className="section-title">Output:</div>
+                    <div className="divider-dashes">------------------------------</div>
+                    <pre className="console-pre">
+                      {result.stdout || 'All test cases passed successfully.'}
+                    </pre>
+                  </div>
                 )}
               </div>
             )}

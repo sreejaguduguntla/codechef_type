@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import './Home.css';
 
 const STATS = [
@@ -17,6 +18,7 @@ const FEATURES = [
 ];
 
 export default function Home() {
+  const { user } = useAuth();
   const [stats, setStats] = useState({ problems: 0, users: 0, submissions: 0 });
   const [recentProblems, setRecentProblems] = useState([]);
 
@@ -55,9 +57,15 @@ export default function Home() {
             <Link to="/problems" className="btn btn-primary btn-xl">
               Start Solving →
             </Link>
-            <Link to="/register" className="btn btn-outline btn-xl">
-              Join Free
-            </Link>
+            {user ? (
+              <Link to="/leaderboard" className="btn btn-outline btn-xl">
+                Leaderboard
+              </Link>
+            ) : (
+              <Link to="/register" className="btn btn-outline btn-xl">
+                Join Free
+              </Link>
+            )}
           </div>
 
           <div className="hero-stats">
@@ -155,7 +163,11 @@ export default function Home() {
             <div className="cta-blob" />
             <h2 className="cta-title">Ready to level up your coding?</h2>
             <p className="cta-subtitle">Join thousands of programmers and start solving today.</p>
-            <Link to="/register" className="btn btn-success btn-xl">Get Started Free</Link>
+            {user ? (
+              <Link to="/problems" className="btn btn-success btn-xl">Go to Problems</Link>
+            ) : (
+              <Link to="/register" className="btn btn-success btn-xl">Get Started Free</Link>
+            )}
           </div>
         </div>
       </section>

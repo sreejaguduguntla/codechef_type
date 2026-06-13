@@ -16,6 +16,8 @@ const submissionSchema = new mongoose.Schema({
   errorOutput: { type: String, default: '' },
   testCasesPassed: { type: Number, default: 0 },
   totalTestCases: { type: Number, default: 0 },
+  exitCode: { type: Number, default: 0 },
+  sandbox: { type: Boolean, default: false },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Submission', submissionSchema);
